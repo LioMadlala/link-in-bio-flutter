@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/social_icons.dart';
 import '../models/post_model.dart';
@@ -756,6 +757,41 @@ class _EditPageState extends State<EditPage> {
     );
   }
 
+  Widget _buildHostingServiceChip(String name, String url) {
+    return InkWell(
+      onTap: () async {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.blue.shade300, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.blue.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.open_in_new, size: 14, color: Colors.blue.shade700),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSocialsSection() {
     if (_socials.isEmpty) {
       return Card(
@@ -1135,10 +1171,100 @@ class _EditPageState extends State<EditPage> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 24),
-                    TextField(
-                      controller: _imageCtrl,
-                      decoration: AppTheme.compactInputDecoration(
-                        'Profile Image URL',
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _imageCtrl,
+                            decoration: AppTheme.compactInputDecoration(
+                              'Profile Image URL (Optional)',
+                              hint: 'Paste image URL here',
+                            ),
+                            keyboardType: TextInputType.url,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.blue.shade200,
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 18,
+                                color: Colors.blue.shade700,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'How to get a profile image URL:',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue.shade900,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '1. Upload your image to a free image hosting service\n'
+                            '2. Copy the direct image URL\n'
+                            '3. Paste it in the field above',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade800,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Recommended free image hosting services:',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _buildHostingServiceChip(
+                                'Imgur',
+                                'https://imgur.com',
+                              ),
+                              _buildHostingServiceChip(
+                                'ImgBB',
+                                'https://imgbb.com',
+                              ),
+                              _buildHostingServiceChip(
+                                'Postimage',
+                                'https://postimg.cc',
+                              ),
+                              _buildHostingServiceChip(
+                                'FreeImage',
+                                'https://freeimage.host',
+                              ),
+                              _buildHostingServiceChip(
+                                'ImgBox',
+                                'https://imgbox.com',
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),

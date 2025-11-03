@@ -24,9 +24,6 @@ class UrlDataHelper {
       if (p['pageColor'] != null && (p['pageColor'] as String).isNotEmpty) {
         profileOpt['c'] = p['pageColor'];
       }
-      if (p['customProfileUrl'] != null && (p['customProfileUrl'] as String).isNotEmpty) {
-        profileOpt['u'] = p['customProfileUrl'];
-      }
       
       optimized['p'] = profileOpt;
     }
@@ -137,7 +134,6 @@ class UrlDataHelper {
         'image': p['i'],
         'description': p['d'],
         'pageColor': p['c'],
-        'customProfileUrl': p['u'],
       };
     }
 

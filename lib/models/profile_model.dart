@@ -4,7 +4,6 @@ class ProfileModel {
   final String surname;
   final String? description;
   final String? pageColor;
-  final String? customProfileUrl;
 
   ProfileModel({
     this.image,
@@ -12,7 +11,6 @@ class ProfileModel {
     required this.surname,
     this.description,
     this.pageColor,
-    this.customProfileUrl,
   });
 
   Map<String, dynamic> toJson() {
@@ -30,9 +28,6 @@ class ProfileModel {
     if (pageColor != null && pageColor!.isNotEmpty) {
       json['pageColor'] = pageColor;
     }
-    if (customProfileUrl != null && customProfileUrl!.isNotEmpty) {
-      json['customProfileUrl'] = customProfileUrl;
-    }
     return json;
   }
 
@@ -43,7 +38,6 @@ class ProfileModel {
       surname: json['surname'] ?? '',
       description: json['description'],
       pageColor: json['pageColor'],
-      customProfileUrl: json['customProfileUrl'],
     );
   }
 
@@ -53,7 +47,6 @@ class ProfileModel {
     String? surname,
     String? description,
     String? pageColor,
-    String? customProfileUrl,
   }) {
     return ProfileModel(
       image: image ?? this.image,
@@ -61,7 +54,6 @@ class ProfileModel {
       surname: surname ?? this.surname,
       description: description ?? this.description,
       pageColor: pageColor ?? this.pageColor,
-      customProfileUrl: customProfileUrl ?? this.customProfileUrl,
     );
   }
 }
