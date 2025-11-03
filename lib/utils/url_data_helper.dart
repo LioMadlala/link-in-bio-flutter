@@ -13,7 +13,7 @@ class UrlDataHelper {
         'n': p['name'], // name (required)
         's': p['surname'], // surname (required)
       };
-      
+
       // Only include non-null, non-empty optional fields
       if (p['image'] != null && (p['image'] as String).isNotEmpty) {
         profileOpt['i'] = p['image'];
@@ -24,12 +24,12 @@ class UrlDataHelper {
       if (p['pageColor'] != null && (p['pageColor'] as String).isNotEmpty) {
         profileOpt['c'] = p['pageColor'];
       }
-      
+
       optimized['p'] = profileOpt;
     }
 
     // Socials: use 's' instead of 'socials'
-    // Order is inferred from array index, enabled=true is omitted
+    // Order is inferred from array index (all items shown)
     if (data.containsKey('socials')) {
       final socials = data['socials'] as List;
       optimized['s'] = socials.map((item) {
@@ -38,33 +38,29 @@ class UrlDataHelper {
           'n': soc['name'], // name (required)
           'u': soc['url'], // url (required)
         };
-        
+
         // Only include non-null, non-empty optional fields
         if (soc['iconName'] != null && (soc['iconName'] as String).isNotEmpty) {
           socialOpt['i'] = soc['iconName'];
         }
-        // Only include enabled if false (default is true)
-        if (soc['enabled'] == false) {
-          socialOpt['e'] = false;
-        }
         // Order is omitted - inferred from array index
-        
+
         return socialOpt;
       }).toList();
     }
 
     // Posts: use 'ps' instead of 'posts'
-    // Use single char type codes, order inferred from array index, enabled=true omitted
+    // Use single char type codes, order inferred from array index (all items shown)
     if (data.containsKey('posts')) {
       final posts = data['posts'] as List;
       optimized['ps'] = posts.map((item) {
         final post = item as Map<String, dynamic>;
         final postOpt = <String, dynamic>{};
-        
+
         // Type: use single char code
         final type = post['type'] ?? 'link';
         postOpt['t'] = _getTypeCode(type);
-        
+
         // Only include non-null, non-empty optional fields
         if (post['text'] != null && (post['text'] as String).isNotEmpty) {
           postOpt['tx'] = post['text'];
@@ -72,20 +68,16 @@ class UrlDataHelper {
         if (post['url'] != null && (post['url'] as String).isNotEmpty) {
           postOpt['u'] = post['url'];
         }
-        
-        // Only include enabled if false (default is true)
-        if (post['enabled'] == false) {
-          postOpt['e'] = false;
-        }
+
         // Order is omitted - inferred from array index
-        
+
         return postOpt;
       }).toList();
     }
 
     return optimized;
   }
-  
+
   // Get single character post type code
   static String _getTypeCode(String type) {
     switch (type.toLowerCase()) {
@@ -103,7 +95,7 @@ class UrlDataHelper {
         return 'l';
     }
   }
-  
+
   // Decode single character post type code
   static String _decodeTypeCode(String code) {
     switch (code.toLowerCase()) {
@@ -146,7 +138,6 @@ class UrlDataHelper {
           'name': soc['n'] ?? '',
           'url': soc['u'] ?? '',
           'iconName': soc['i'],
-          'enabled': soc['e'] ?? true, // Default is true
           'order': index, // Order is inferred from array index
         };
       }).toList();
@@ -161,7 +152,6 @@ class UrlDataHelper {
           'type': _decodeTypeCode(post['t']?.toString() ?? 'l'),
           'text': post['tx'],
           'url': post['u'],
-          'enabled': post['e'] ?? true, // Default is true
           'order': index, // Order is inferred from array index
         };
       }).toList();

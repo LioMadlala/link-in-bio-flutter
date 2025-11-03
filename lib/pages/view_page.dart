@@ -48,24 +48,22 @@ class ViewPage extends StatelessWidget {
         ColorPalette.getColorByValue(profile.pageColor) ??
         ColorPalette.getDefaultColor();
 
-    // Helper function to get card color with page color theme
-    Color getCardColor() {
-      // Mix page color with white (85% white, 15% page color) for subtle theming
-      return Color.fromRGBO(
-        (255 * 0.85 + pageColor.red * 0.15).round().clamp(0, 255),
-        (255 * 0.85 + pageColor.green * 0.15).round().clamp(0, 255),
-        (255 * 0.85 + pageColor.blue * 0.15).round().clamp(0, 255),
-        1.0,
-      );
-    }
+    final cardColor = pageColor;
 
-    final cardColor = getCardColor();
-
-    // Filter enabled items and sort by order
-    final enabledSocials = socials.where((s) => s.enabled).toList()
+    // Sort items by order
+    final sortedSocials = List<SocialModel>.from(socials)
       ..sort((a, b) => a.order.compareTo(b.order));
 
-    final enabledPosts = posts.where((p) => p.enabled).toList()
+    // Add default promotional link-in-bio item (always appears last)
+    final promotionalLink = SocialModel(
+      name: 'Create Your Link in Bio for Free',
+      url: 'https://handle-linkinbio.web.app/',
+      iconName: null, // Will use fallback link icon
+      order: 999, // Always appears last
+    );
+    sortedSocials.add(promotionalLink);
+
+    final sortedPosts = List<PostModel>.from(posts)
       ..sort((a, b) => a.order.compareTo(b.order));
 
     return Scaffold(
@@ -171,81 +169,110 @@ class ViewPage extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               // Social links section - card list
-              if (enabledSocials.isNotEmpty) ...[
+              if (sortedSocials.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18),
                   child: Column(
-                    children: enabledSocials.asMap().entries.map((entry) {
+                    children: sortedSocials.asMap().entries.map((entry) {
                       final index = entry.key;
                       final social = entry.value;
                       return Padding(
                         padding: EdgeInsets.only(
-                          bottom: index == enabledSocials.length - 1 ? 0 : 12,
+                          bottom: index == sortedSocials.length - 1 ? 0 : 12,
                         ),
-                        child: Material(
-                          color: cardColor,
+                        child: InkWell(
+                          onTap: () async {
+                            final uri = Uri.parse(social.url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            }
+                          },
                           borderRadius: BorderRadius.circular(16),
-                          elevation: 3,
-                          shadowColor: Colors.black.withOpacity(0.08),
-                          child: InkWell(
-                            onTap: () async {
-                              final uri = Uri.parse(social.url);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(
-                                  uri,
-                                  mode: LaunchMode.externalApplication,
-                                );
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 16,
-                              ),
-                              decoration: BoxDecoration(
-                                color: cardColor,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Icon
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: pageColor.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Center(
-                                      child: IconHelper.buildIconWidget(
-                                        social.iconName,
-                                        size: 24,
-                                        fallbackColor: Colors.grey.shade600,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.8),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                // Icon
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        social.url.contains('handle-linkinbio')
+                                        ? Colors.red.shade50
+                                        : pageColor.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Center(
+                                    child:
+                                        social.url.contains('handle-linkinbio')
+                                        ? Icon(
+                                            Icons.favorite,
+                                            size: 24,
+                                            color: Colors.red.shade400,
+                                          )
+                                        : IconHelper.buildIconWidget(
+                                            social.iconName,
+                                            size: 24,
+                                            fallbackColor: pageColor
+                                                .withOpacity(0.5),
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                // Platform name
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        social.name.isNotEmpty
+                                            ? social.name
+                                            : 'Social Link',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey.shade800,
+                                        ),
                                       ),
-                                    ),
+                                      if (social.url.contains(
+                                        'handle-linkinbio',
+                                      ))
+                                        Text(
+                                          'Free & Easy to Use',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 16),
-                                  // Platform name
-                                  Expanded(
-                                    child: Text(
-                                      social.name.isNotEmpty
-                                          ? social.name
-                                          : 'Social Link',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey.shade800,
-                                      ),
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                ],
-                              ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Colors.grey.shade400,
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -256,16 +283,16 @@ class ViewPage extends StatelessWidget {
                 const SizedBox(height: 40),
               ],
               // Posts section - full width cards
-              if (enabledPosts.isNotEmpty) ...[
+              if (sortedPosts.isNotEmpty) ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18),
                   child: Column(
-                    children: enabledPosts.asMap().entries.map((entry) {
+                    children: sortedPosts.asMap().entries.map((entry) {
                       final index = entry.key;
                       final post = entry.value;
                       return Padding(
                         padding: EdgeInsets.only(
-                          bottom: index == enabledPosts.length - 1 ? 0 : 16,
+                          bottom: index == sortedPosts.length - 1 ? 0 : 16,
                         ),
                         child: PostPreviewCard(
                           url: post.url,

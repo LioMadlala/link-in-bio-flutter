@@ -26,7 +26,6 @@ class _EditPageState extends State<EditPage> {
   final _nameCtrl = TextEditingController();
   final _surnameCtrl = TextEditingController();
   final _descriptionCtrl = TextEditingController();
-  final _customUrlCtrl = TextEditingController();
   final _existingLinkCtrl = TextEditingController();
 
   final List<SocialModel> _socials = [];
@@ -46,7 +45,6 @@ class _EditPageState extends State<EditPage> {
     _nameCtrl.dispose();
     _surnameCtrl.dispose();
     _descriptionCtrl.dispose();
-    _customUrlCtrl.dispose();
     _existingLinkCtrl.dispose();
     super.dispose();
   }
@@ -61,7 +59,6 @@ class _EditPageState extends State<EditPage> {
     _nameCtrl.text = profile['name'] ?? '';
     _surnameCtrl.text = profile['surname'] ?? '';
     _descriptionCtrl.text = profile['description'] ?? '';
-    _customUrlCtrl.text = profile['customProfileUrl'] ?? '';
     _selectedPageColor = profile['pageColor'];
 
     _socials.clear();
@@ -86,42 +83,78 @@ class _EditPageState extends State<EditPage> {
 
     String? encoded;
 
-    // Try to parse as URI first
-    final uri = Uri.tryParse(input);
-    if (uri != null) {
-      // Check if it has 'd' query parameter
-      encoded = uri.queryParameters['d'];
-      // Also check if the path contains the encoded data (for hash-based routing)
-      if (encoded == null && uri.path.contains('?d=')) {
-        final match = RegExp(r'[?&]d=([^&]+)').firstMatch(input);
-        encoded = match?.group(1);
-      }
-      // Also check fragment (for hash routing like #/view?d=...)
-      if (encoded == null && uri.fragment.isNotEmpty) {
-        final fragmentUri = Uri.tryParse('?${uri.fragment}');
-        encoded = fragmentUri?.queryParameters['d'];
-      }
+    // Method 1: Extract 'd' parameter from hash fragment (#/view?d=...)
+    // This handles formats like: https://domain.com/#/view?d=...
+    final hashMatch = RegExp(r'#.*?[?&]d=([^&?#\s]+)').firstMatch(input);
+    if (hashMatch != null) {
+      encoded = hashMatch.group(1);
     }
 
-    // If still no encoded data, try treating the entire input as base64
+    // Method 2: Extract 'd' parameter from query string (?d=...)
+    // This handles formats like: https://domain.com/?d=...
     if (encoded == null) {
-      // Try to decode the input directly (might be just the encoded string)
-      final testDecode = UrlDataHelper.decode(input);
-      if (testDecode != null) {
-        encoded = input;
+      final queryMatch = RegExp(r'[?&]d=([^&?#\s]+)').firstMatch(input);
+      if (queryMatch != null) {
+        encoded = queryMatch.group(1);
       }
     }
 
+    // Method 3: Try parsing as URI and check various locations
+    if (encoded == null) {
+      final uri = Uri.tryParse(input);
+      if (uri != null) {
+        // Check query parameters
+        encoded = uri.queryParameters['d'];
+
+        // Check fragment if it contains ?d=
+        if (encoded == null && uri.fragment.isNotEmpty) {
+          // Handle fragments like: #/view?d=...
+          if (uri.fragment.contains('?d=') || uri.fragment.contains('&d=')) {
+            final fragmentMatch = RegExp(
+              r'[?&]d=([^&?#\s]+)',
+            ).firstMatch(uri.fragment);
+            encoded = fragmentMatch?.group(1);
+          }
+        }
+      }
+    }
+
+    // Method 4: If input looks like base64, try decoding directly
+    // Validates it's likely base64 before attempting decode
+    if (encoded == null) {
+      final trimmed = input.trim();
+      // Base64URL chars: A-Z, a-z, 0-9, -, _ (and = for padding)
+      if (RegExp(r'^[A-Za-z0-9\-_]+=*$').hasMatch(trimmed) &&
+          trimmed.length > 20) {
+        try {
+          final testDecode = UrlDataHelper.decode(trimmed);
+          if (testDecode != null && testDecode.containsKey('profile')) {
+            encoded = trimmed;
+          }
+        } catch (e) {
+          // Not valid base64, continue
+        }
+      }
+    }
+
+    // Validate and decode
     if (encoded == null || encoded.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Could not find encoded data in the link. Please paste the full link.',
+            'Could not find encoded data in the link. Please paste the full link or just the encoded data string.',
           ),
-          duration: Duration(seconds: 3),
+          duration: Duration(seconds: 4),
         ),
       );
       return;
+    }
+
+    // URL decode the parameter value (in case it's URL encoded)
+    try {
+      encoded = Uri.decodeComponent(encoded);
+    } catch (e) {
+      // If decoding fails, use as-is
     }
 
     final data = UrlDataHelper.decode(encoded);
@@ -129,7 +162,20 @@ class _EditPageState extends State<EditPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Could not decode link data. The link may be invalid or corrupted.',
+            'Could not decode link data. The link may be invalid or corrupted. Make sure you copied the complete link.',
+          ),
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    // Validate data structure
+    if (data['profile'] == null || data['profile']!['name'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invalid profile data. The link may be corrupted or incomplete.',
           ),
           duration: Duration(seconds: 3),
         ),
@@ -168,9 +214,6 @@ class _EditPageState extends State<EditPage> {
           ? null
           : _descriptionCtrl.text.trim(),
       'pageColor': _selectedPageColor,
-      'customProfileUrl': _customUrlCtrl.text.trim().isEmpty
-          ? null
-          : _customUrlCtrl.text.trim(),
     };
 
     final socials = _socials.map((s) => s.toJson()).toList();
@@ -180,10 +223,8 @@ class _EditPageState extends State<EditPage> {
     final data = {'profile': profile, 'socials': socials, 'posts': posts};
     final encoded = UrlDataHelper.encode(data);
 
-    // Use custom URL if provided, otherwise generate
-    final link = _customUrlCtrl.text.trim().isNotEmpty
-        ? _customUrlCtrl.text.trim()
-        : '${Uri.base.origin}/#/view?d=$encoded';
+    // Generate link using current origin
+    final link = '${Uri.base.origin}/#/view?d=$encoded';
 
     setState(() {
       _generatedLink = link;
@@ -524,7 +565,6 @@ class _EditPageState extends State<EditPage> {
     final nameCtrl = TextEditingController(text: social.name);
     final urlCtrl = TextEditingController(text: social.url);
     String? selectedIcon = social.iconName;
-    bool enabled = social.enabled;
 
     showDialog(
       context: context,
@@ -609,7 +649,6 @@ class _EditPageState extends State<EditPage> {
                     name: name.isEmpty ? 'Social Link' : name,
                     url: url,
                     iconName: selectedIcon,
-                    enabled: enabled,
                   );
                 });
                 Navigator.pop(context);
@@ -627,7 +666,6 @@ class _EditPageState extends State<EditPage> {
     final typeCtrl = TextEditingController(text: post.type);
     final textCtrl = TextEditingController(text: post.text ?? '');
     final urlCtrl = TextEditingController(text: post.url ?? '');
-    bool enabled = post.enabled;
 
     showDialog(
       context: context,
@@ -744,7 +782,6 @@ class _EditPageState extends State<EditPage> {
                         : (urlCtrl.text.trim().isEmpty
                               ? null
                               : urlCtrl.text.trim()),
-                    enabled: enabled,
                   );
                 });
                 Navigator.pop(context);

@@ -2,7 +2,6 @@ class PostModel {
   final String type;
   final String? text;
   final String? url;
-  final bool enabled;
   final int order;
   final Map<String, dynamic>? previewMetadata;
 
@@ -10,7 +9,6 @@ class PostModel {
     required this.type,
     this.text,
     this.url,
-    this.enabled = true,
     this.order = 0,
     this.previewMetadata,
   });
@@ -39,11 +37,6 @@ class PostModel {
       } else {
         json['url'] = url;
       }
-    }
-
-    // Only include enabled if false (default is true)
-    if (!enabled) {
-      json['e'] = false;
     }
 
     // Order is omitted - will be inferred from array index
@@ -81,14 +74,12 @@ class PostModel {
 
     String? text = json['tx'] ?? json['text'];
     String? url = json['u'] ?? json['url'];
-    bool enabled = json['e'] ?? json['enabled'] ?? true;
     int order = json['o'] ?? json['order'] ?? 0;
 
     return PostModel(
       type: type,
       text: text,
       url: url,
-      enabled: enabled,
       order: order,
     );
   }
@@ -114,7 +105,6 @@ class PostModel {
     String? type,
     String? text,
     String? url,
-    bool? enabled,
     int? order,
     Map<String, dynamic>? previewMetadata,
   }) {
@@ -122,7 +112,6 @@ class PostModel {
       type: type ?? this.type,
       text: text ?? this.text,
       url: url ?? this.url,
-      enabled: enabled ?? this.enabled,
       order: order ?? this.order,
       previewMetadata: previewMetadata ?? this.previewMetadata,
     );
