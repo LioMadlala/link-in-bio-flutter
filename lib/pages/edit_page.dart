@@ -1300,14 +1300,14 @@ class _EditPageState extends State<EditPage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _customUrlCtrl,
-                      decoration: AppTheme.compactInputDecoration(
-                        'Custom Profile URL (Optional)',
-                        hint: 'Leave empty to use generated URL',
-                      ),
-                    ),
+                    // const SizedBox(height: 24),
+                    // TextField(
+                    //   controller: _customUrlCtrl,
+                    //   decoration: AppTheme.compactInputDecoration(
+                    //     'Custom Profile URL (Optional)',
+                    //     hint: 'Leave empty to use generated URL',
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
